@@ -12,6 +12,7 @@ class _TambahAppbarState extends State<TambahAppbar> {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      
       title: Text("Tambah Tugas"),
       backgroundColor: const Color(0xFF6D7470),
     );

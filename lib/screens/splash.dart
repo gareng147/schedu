@@ -33,10 +33,10 @@ Future<void> _checkLogin() async {
   final prefs = await SharedPreferences.getInstance();
   final username = prefs.getString('username');
 
-  await Future.delayed(const Duration(seconds: 2)); // Efek splash screen
+  await Future.delayed(const Duration(seconds: 2)); 
 
   if (username != null && username.isNotEmpty) {
-    // Sudah login
+    
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -44,7 +44,7 @@ Future<void> _checkLogin() async {
       );
     }
   } else {
-    // Belum login
+    
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -64,54 +64,57 @@ Future<void> _checkLogin() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(100, 0, 101, 101),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Spacer(),
-          const Text(
-            "Schedu",
-            style: TextStyle(
-              fontSize: 40,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
+      
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: <Color>
+            [
+            Color(0xFF2FD4DB),
+            Color(0xFF0A959A)
+            ],begin: Alignment.topCenter,end: Alignment.bottomCenter
+          )
+        ),
+        
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            
+            const Text(
+              "Schedu",
+              style: TextStyle(
+                fontSize: 40,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              return AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return Opacity(
-                    opacity: _animation.value,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                return AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return Opacity(
+                      opacity: _animation.value,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              );
-            }),
-          ),
-          const Spacer(),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 30),
-            child: Text(
-              "Loading...",
-              style: TextStyle(color: Colors.white70),
-            ),
-          )
-        ],
+                    );
+                  },
+                );
+              }),
+            )
+          ],
+        ),
       ),
     );
   }
