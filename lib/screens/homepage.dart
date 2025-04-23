@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:schedu/widgets/schedule_card.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,30 +13,30 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String selectedDay = "hari_ini";
 
-  // Data jadwal untuk Hari Ini dan Besok
-  final List<Map<String, String>> jadwalHariIni = [
-    {"title": "Digital Marketing", "room": "Ruang 2.2", "time": "08:00 - 10:00"},
-    {"title": "Etika Profesi", "room": "Ruang 3.2", "time": "12:30 - 14:10"},
-    {"title": "Kewirausahaan", "room": "Ruang 3.1", "time": "14:20 - 16:00"},
-  ];
+  String _formatDate(DateTime date) {
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  }
 
-  final List<Map<String, String>> jadwalBesok = [
-    {"title": "Manajemen Proyek", "room": "Ruang 2.1", "time": "08:50 - 10:30"},
-    {"title": "Audit SI", "room": "Ruang 3.1", "time": "12:30 - 14:10"},
-    {"title": "PBO", "room": "Ruang 3.4", "time": "14:20 - 16:00"},
-  ];
 
-  // Warna background berdasarkan index
+ String _getHari(DateTime date) {
+    const hariList = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    return hariList[date.weekday % 7]; 
+  }
+
+
+
+  
   final List<Color> warnaCard = [
     const Color(0xFFD8B9A8),
     const Color(0xFFEADBC8),
     const Color(0xFFF6EFE7),
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    // Pilih daftar jadwal berdasarkan hari
-    final jadwal = selectedDay == "hari_ini" ? jadwalHariIni : jadwalBesok;
+    @override
+    Widget build(BuildContext context) {
+      final today = DateTime.now();
+      final besok = today.add(Duration(days: 1));      
+      final filterHari = selectedDay == "hari_ini" ? _getHari(today) : _getHari(besok);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,17 +97,75 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
 
-        // List Jadwal
+        
         Expanded(
-          child: ListView.builder(
-            itemCount: jadwal.length,
-            itemBuilder: (context, index) {
-              final item = jadwal[index];
-              final warna = warnaCard[index % warnaCard.length];
-              return buildCard(item['title']!, item['room']!, item['time']!, warna);
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('jadwal')
+                .where('hari', isEqualTo: filterHari)
+                //.orderBy('jam')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text('Tidak ada jadwal'));
+              }
+
+              final docs = snapshot.data!.docs;
+              return ListView.builder(
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  final title = data['matkul'] ?? '';
+                  final ruang = data['ruang'] ?? '';
+                  final jam = data['jam'] ?? '';
+                  final warna = warnaCard[index % warnaCard.length];
+
+                  return Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: ScheduleCard(
+                      title: title,
+                      jam: jam,
+                      ruang: ruang,
+                      color: warna,
+                      onEdit: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/edit-jadwal',
+                          arguments: docs[index].id,
+                        );
+                      },
+                      onDelete: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Hapus Jadwal'),
+                            content: const Text('Yakin ingin menghapus jadwal ini?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
+                            ],
+                          ),
+                        );
+                    
+                        if (confirm == true) {
+                          await FirebaseFirestore.instance
+                              .collection('jadwal')
+                              .doc(docs[index].id)
+                              .delete();
+                        }
+                      },
+                    ),
+                  );
+
+                },
+              );
             },
           ),
         ),
+
 
         // Catatan
         const Divider(color: Colors.black, thickness: 1, indent: 16, endIndent: 16),
@@ -135,29 +196,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Widget Card
-  Widget buildCard(String title, String room, String time, Color backgroundColor) {
-    return Card(
-      color: backgroundColor,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Row(
-          children: [
-            const Icon(Icons.location_on, size: 16),
-            const SizedBox(width: 4),
-            Text(room),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.access_time, size: 16),
-            const SizedBox(width: 4),
-            Text(time),
-          ],
-        ),
-      ),
-    );
-  }
+  
+  
 }

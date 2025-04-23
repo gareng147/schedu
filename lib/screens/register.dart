@@ -1,7 +1,8 @@
 // screens/register_page.dart
 import 'package:flutter/material.dart';
-import 'package:schedu/widgets/header_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'login.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -12,9 +13,64 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
 
-  void _signup() {
+final TextEditingController namaController = TextEditingController();
+final TextEditingController emailController = TextEditingController();
+final TextEditingController passwordController = TextEditingController();
+final TextEditingController nomorController = TextEditingController();
 
+  void _signup() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+    final nama = namaController.text.trim();
+    final nohp = nomorController.text.trim();
+
+    
+    if (email.isEmpty || password.isEmpty || nama.isEmpty || nohp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua kolom harus diisi!')),
+      );
+      return;
+    }
+
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+        'nama': nama,
+        'no_hp': nohp,
+        'email': email,
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registrasi Berhasil. Silahkan Login.')),
+      );
+
+      // Navigasi ke LoginPage
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String errorMsg = 'Terjadi Kesalahan';
+
+      if (e.code == 'email-already-in-use') {
+        errorMsg = 'Email Sudah Digunakan';
+      } else if (e.code == 'weak-password') {
+        errorMsg = 'Password Terlalu Lemah';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMsg)),
+      );
+    }
   }
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,7 +119,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         style: TextStyle(fontSize: 15, color: Colors.black),
                       ),
                       const SizedBox(height: 5),
-                      TextField(                
+                      TextField(  
+                        controller: namaController,              
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
@@ -78,6 +135,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 5),
                       TextField(
+                        controller: passwordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
@@ -93,7 +151,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         style: TextStyle(fontSize: 15, color: Colors.black),
                       ),
                       const SizedBox(height: 5),
-                      TextField(                
+                      TextField(   
+                        controller: emailController,             
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
@@ -107,7 +166,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         style: TextStyle(fontSize: 15, color: Colors.black),
                       ),
                       const SizedBox(height: 5),
-                      TextField(                
+                      TextField(  
+                        controller: nomorController,              
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TambahJadwal extends StatefulWidget {
   const TambahJadwal({super.key});
@@ -9,114 +9,155 @@ class TambahJadwal extends StatefulWidget {
 }
 
 class _TambahJadwalState extends State<TambahJadwal> {
-final TextEditingController MatakuliahControler = TextEditingController();
-final TextEditingController HariControler = TextEditingController();
-final TextEditingController JamControler = TextEditingController();
-final TextEditingController RuangControler = TextEditingController();
-  
-  String title = "Tambah Jadwal";
+  final TextEditingController matakuliahController = TextEditingController();
+  final TextEditingController ruangController = TextEditingController();
+  final TextEditingController jamMulaiController = TextEditingController();
+  final TextEditingController jamSelesaiController = TextEditingController();
+
+  TimeOfDay? selectedJamMulai;
+  TimeOfDay? selectedJamSelesai;
+
+  String? selectedHari;
+  final List<String> hariList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+  String formatJam(TimeOfDay time) {
+    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-      backgroundColor: const Color(0xFF2FD4DB),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.pop(context);
-        },
-      ),
-      title: const Text(''), 
-      centerTitle: true,
-      automaticallyImplyLeading: false,
-      flexibleSpace: SafeArea(
-        child: Center(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 30,
+        backgroundColor: const Color(0xFF2FD4DB),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: SafeArea(
+          child: Center(
+            child: Text(
+              "Tambah Jadwal",
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 30,
+              ),
             ),
           ),
         ),
       ),
-    ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Mata Kuliah", style: TextStyle(fontSize: 15)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: matakuliahController,
+              decoration: _inputDecoration(),
+            ),
+            const SizedBox(height: 10),
 
-      body: Column(
-        children: [  
-          const SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                TextField(
-                  controller: MatakuliahControler,
-                  decoration: InputDecoration(
-                    labelText: 'Mata Kuliah',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20)
-                    )
-                  ),
-                )
-              ],
+            const Text("Hari", style: TextStyle(fontSize: 15)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: selectedHari,
+              decoration: _inputDecoration(),
+              hint: const Text("Pilih Hari"),
+              items: hariList.map((hari) => DropdownMenuItem(value: hari, child: Text(hari))).toList(),
+              onChanged: (value) => setState(() => selectedHari = value),
             ),
-          ),
-          const SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                TextField(
-                  controller: HariControler,
-                  decoration: InputDecoration(
-                    labelText: 'Hari',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20)
-                    )
-                  ),
-                )
-              ],
+            const SizedBox(height: 10),
+
+            const Text("Jam Mulai", style: TextStyle(fontSize: 15)),
+            const SizedBox(height: 8),
+            _buildTimePicker(
+              controller: jamMulaiController,
+              onPick: (picked) {
+                setState(() {
+                  selectedJamMulai = picked;
+                  jamMulaiController.text = picked.format(context);
+                });
+              },
             ),
-          ),
-          const SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                TextField(
-                  controller: JamControler,
-                  decoration: InputDecoration(
-                    labelText: 'Jam',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20)
-                    )
-                  ),
-                )
-              ],
+            const SizedBox(height: 10),
+
+            const Text("Jam Selesai", style: TextStyle(fontSize: 15)),
+            const SizedBox(height: 8),
+            _buildTimePicker(
+              controller: jamSelesaiController,
+              onPick: (picked) {
+                setState(() {
+                  selectedJamSelesai = picked;
+                  jamSelesaiController.text = picked.format(context);
+                });
+              },
             ),
-          ),
-          const SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                TextField(
-                  controller: RuangControler,
-                  decoration: InputDecoration(
-                    labelText: 'Ruang',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20)
-                    )
-                  ),
-                )
-              ],
+            const SizedBox(height: 10),
+
+            const Text("Ruang", style: TextStyle(fontSize: 15)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: ruangController,
+              decoration: _inputDecoration(),
             ),
-          ),
-          
-        ],
+            const SizedBox(height: 20),
+
+            Center(
+              child: ElevatedButton(
+                onPressed: _simpanJadwal,
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A959A)),
+                child: const Text("Simpan", style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
       ),
-      
     );
+  }
+
+  InputDecoration _inputDecoration() {
+    return InputDecoration(
+      contentPadding: const EdgeInsets.all(10),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+    );
+  }
+
+  Widget _buildTimePicker({required TextEditingController controller, required Function(TimeOfDay) onPick}) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+        if (picked != null) onPick(picked);
+      },
+      child: IgnorePointer(
+        child: TextField(
+          controller: controller,
+          decoration: _inputDecoration().copyWith(suffixIcon: const Icon(Icons.access_time)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _simpanJadwal() async {
+    final matkul = matakuliahController.text;
+    final ruang = ruangController.text;
+    final hari = selectedHari;
+    final mulai = selectedJamMulai;
+    final selesai = selectedJamSelesai;
+
+    if (matkul.isEmpty || ruang.isEmpty || hari == null || mulai == null || selesai == null) return;
+
+    final jamGabungan = "${formatJam(mulai)} - ${formatJam(selesai)}";
+
+    await FirebaseFirestore.instance.collection('jadwal').add({
+      'matkul': matkul,
+      'hari': hari,
+      'jam': jamGabungan,
+      'ruang': ruang,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    Navigator.pop(context);
   }
 }

@@ -1,32 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:schedu/screens/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io'; // buat exit(0)
-import 'package:flutter/services.dart'; // buat SystemNavigator.pop()
+import 'dart:io'; 
+import 'package:flutter/services.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserPage extends StatelessWidget {
   const UserPage({super.key});
 
   Future<void> _logoutAndExit(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Hapus data login
-
-    // Keluar dari aplikasi
-    // Bisa pakai salah satu:
-    // exit(0); atau SystemNavigator.pop();
-
-    if (Platform.isAndroid) {
-      SystemNavigator.pop();
-    } else {
-      exit(0);
+    try {
+      await FirebaseAuth.instance.signOut(); 
+      
+      
+      if (context.mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+      }
+    } catch (e) {
+      print("Logout error: $e");
     }
   }
+
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Konfirmasi Logout"),
-        content: const Text("Apakah kamu yakin ingin keluar dari aplikasi?"),
+        content: const Text("Apakah kamu yakin ingin keluar dari akun ini?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -34,8 +38,8 @@ class UserPage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(ctx).pop(); // Tutup dialog
-              _logoutAndExit(context); // Logout dan keluar
+              Navigator.of(ctx).pop();
+              _logoutAndExit(context); 
             },
             child: const Text("Ya"),
           ),

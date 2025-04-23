@@ -6,10 +6,23 @@ import 'package:schedu/screens/homepage.dart';
 import 'package:schedu/screens/jadwal_page.dart';
 import 'package:schedu/screens/tugas_page.dart';
 import 'package:schedu/screens/user_page.dart';
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 
 
-void main() {
+
+void main() async{
+
+WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+);
+FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    print('🔥 Caught Flutter error: ${details.exception}');
+    print('🔥 Stack trace:\n${details.stack}');
+  };
   runApp(Schedu());
 }
 

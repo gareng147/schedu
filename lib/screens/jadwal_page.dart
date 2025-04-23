@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:schedu/screens/tambah_jadwal.dart';
 import 'package:schedu/widgets/schedule_card.dart';
 import 'package:schedu/widgets/kalender.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class JadwalKelasPage extends StatefulWidget {
   const JadwalKelasPage({super.key});
@@ -14,7 +16,7 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
   DateTime _selectedDate = DateTime.now();
   bool isCalendarView = false;
 
-  // Jadwal untuk tampilan kalender (misalnya: tanggal tertentu)
+  
   final List<Map<String, String>> jadwal = [
     {"title": "Digital Marketing", "subtitle": "Ruang 2.2 | 08:20 - 10:30"},
     {"title": "DMDW", "subtitle": "Ruang 3.2 | 08:20 - 10:30"},
@@ -25,9 +27,7 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
     return Scaffold(
       body: Column(
         children: [
-          const SizedBox(height: 16),
-
-          // Tombol toggle Jadwal / Kalender
+          const SizedBox(height: 16),          
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -71,9 +71,9 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
 
           const SizedBox(height: 16),
 
-          // Konten berdasarkan mode
+          
           if (isCalendarView) ...[
-            // == KALENDER MODE ==
+           
             KalenderWidget(
               selectedDate: _selectedDate,
               onDateChanged: (newDate) {
@@ -94,54 +94,158 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                itemCount: jadwal.length,
-                itemBuilder: (context, index) {
-                  final item = jadwal[index];
-                  return ScheduleCard(
-                    title: item["title"]!,
-                    subtitle: item["subtitle"]!,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                  .collection('jadwal')
+                  .where('hari', isEqualTo: _namaHari(_selectedDate.weekday))
+                  .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(child: Text('Belum ada jadwal'));
+                  }
+
+                  final docs = snapshot.data!.docs;
+                  return ListView.builder(
+                    // Hanya tambahkan padding horizontal di tab kalender
+                    padding: isCalendarView ? const EdgeInsets.symmetric(horizontal: 16) : EdgeInsets.zero,
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      final title = data['matkul'] ?? '';
+                      final ruang = data['ruang'] ?? '';
+                      final jam = data['jam'] ?? '';
+                      return Padding(
+                        padding: isCalendarView ? const EdgeInsets.only(bottom: 16) : EdgeInsets.zero, // Hanya beri margin bawah di kalender
+                        child: ScheduleCard(
+                          title: data['matkul'] ?? '',
+                          jam: data['jam'] ?? '',
+                          ruang: data['ruang'] ?? '',
+                          color: Colors.pink[100], // contoh warna
+                          onEdit: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/edit-jadwal',
+                              arguments: docs[index].id,
+                            );
+                          },
+                          onDelete: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Hapus Jadwal'),
+                                content: const Text('Yakin ingin menghapus jadwal ini?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              await FirebaseFirestore.instance.collection('jadwal').doc(docs[index].id).delete();
+                            }
+                          },
+                        ),
+                      );
+                    },
                   );
                 },
               ),
-            ),
+            )
+
+
           ] else ...[
-            // == JADWAL MINGGUAN MODE ==
+            
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  const Text(
-                    "Senin",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  ScheduleCard(
-                    title: "PMO",
-                    subtitle: "Ruang 2.2 | 08:20 - 10:30",
-                  ),
-                  ScheduleCard(
-                    title: "Analisis Desain",
-                    subtitle: "Ruang 3.2 | 08:20 - 10:30",
-                  ),
-                  const SizedBox(height: 12),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('jadwal')
+                    .orderBy('createdAt', descending: false)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(child: Text('Belum ada jadwal'));
+                  }
 
-                  const Text(
-                    "Selasa",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  ScheduleCard(
-                    title: "Digital Marketing",
-                    subtitle: "Ruang 2.2 | 08:20 - 10:30",
-                  ),
-                  ScheduleCard(
-                    title: "DMDW",
-                    subtitle: "Ruang 3.2 | 08:20 - 10:30",
-                  ),
+                  
+                  final Map<String, List<Map<String, dynamic>>> groupedData = {};
 
-                  // Tambahkan Rabu, Kamis, dst. kalau perlu
-                ],
+                  for (var doc in snapshot.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final hari = data['hari'] ?? 'Lainnya';
+                    groupedData.putIfAbsent(hari, () => []).add(data);
+                  }
+
+                  final hariList = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+
+                  return ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: hariList.where((h) => groupedData.containsKey(h)).map((hari) {
+                      final items = groupedData[hari]!;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hari,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                          const SizedBox(height: 8),
+                          ...items.map((item) {
+                            return ScheduleCard(
+                              title: item['matkul'] ?? '',
+                              jam: item['jam'] ?? '',
+                              ruang: item['ruang'] ?? '',
+                              color: Colors.pink[100],
+                              onEdit: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/edit-jadwal',
+                                  arguments: item['id'], // ini mungkin perlu disesuaikan
+                                );
+                              },
+                              onDelete: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Hapus Jadwal'),
+                                    content: const Text('Yakin ingin menghapus jadwal ini?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  // di sini kita butuh id dokumen Firestore
+                                  await FirebaseFirestore.instance
+                                    .collection('jadwal')
+                                    .where('matkul', isEqualTo: item['matkul']) // ganti ini kalau ada ID
+                                    .get()
+                                    .then((snapshot) {
+                                      for (var doc in snapshot.docs) {
+                                        doc.reference.delete();
+                                      }
+                                    });
+                                }
+                              },
+                            );
+                          }).toList(),
+
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    }).toList(),
+                  );
+                },
               ),
-            ),
+            )
           ],
         ],
       ),

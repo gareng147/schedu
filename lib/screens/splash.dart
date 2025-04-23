@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:schedu/screens/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'homepage.dart';
+//import 'homepage.dart';
 import 'package:schedu/main.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -30,22 +32,17 @@ void initState() {
 }
 
 Future<void> _checkLogin() async {
-  final prefs = await SharedPreferences.getInstance();
-  final username = prefs.getString('username');
-
   await Future.delayed(const Duration(seconds: 2)); 
 
-  if (username != null && username.isNotEmpty) {
-    
-    if (mounted) {
+  final user = FirebaseAuth.instance.currentUser;
+
+  if (mounted) {
+    if (user != null) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainPage()),
       );
-    }
-  } else {
-    
-    if (mounted) {
+    } else {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -53,6 +50,7 @@ Future<void> _checkLogin() async {
     }
   }
 }
+
 
 
   @override
@@ -78,7 +76,7 @@ Future<void> _checkLogin() async {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            
+            Image.asset("assets/logo.png"),
             const Text(
               "Schedu",
               style: TextStyle(

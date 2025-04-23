@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CustomAppBar extends StatefulWidget {
   const CustomAppBar({super.key});
@@ -17,11 +19,23 @@ class _CustomAppBarState extends State<CustomAppBar> {
     _loadUsername();
   }
 
+  
   void _loadUsername() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      username = prefs.getString('username') ?? '';
-    });
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userSnapshot.exists) {
+        setState(() {
+          username = userSnapshot['nama'];  
+        });
+      }
+    }
   }
 
   @override

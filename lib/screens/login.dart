@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:schedu/screens/register.dart';
 import 'package:schedu/main.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+//import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 
 class LoginPage extends StatefulWidget {
@@ -13,26 +14,68 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+   bool _isLoading = false;
+
+
   void _login() async {
-    final username = usernameController.text;
+    setState(() => _isLoading = true);
+
+    final email = emailController.text.trim();
     final password = passwordController.text;
 
-    if (username == 'admin' && password == '1') {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('username', username);
-      Navigator.pushReplacement(
-        context,
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Email dan password tidak boleh kosong')),
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      // Debug log
+      print("Login berhasil: ${userCredential.user?.email}");
+
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainPage()),
       );
-    } else {
+    } on FirebaseAuthException catch (e) {
+      String message = 'Terjadi kesalahan';
+      if (e.code == 'user-not-found') {
+        message = 'Pengguna tidak ditemukan';
+      } else if (e.code == 'wrong-password') {
+        message = 'Password salah';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username atau Password salah')),
+        SnackBar(content: Text(message)),
       );
+    } catch (e,stacktrace) {
+      print("Unhandled error: $e");
+      print("Stacktrace: $stacktrace");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -123,12 +166,13 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 15),
                       const Text(
-                        "Username",
+                        "Email",
                         style: TextStyle(fontSize: 15, color: Colors.black),
                       ),
                       const SizedBox(height: 8),
                       TextField(
-                        controller: usernameController,
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
@@ -156,7 +200,10 @@ class _LoginPageState extends State<LoginPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          ElevatedButton(
+                          _isLoading
+                          ?CircularProgressIndicator()
+
+                          :ElevatedButton(
                             onPressed: _login,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF0A959A),
