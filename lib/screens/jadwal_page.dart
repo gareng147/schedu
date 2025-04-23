@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:schedu/screens/tambah_jadwal.dart';
 import 'package:schedu/widgets/schedule_card.dart';
 import 'package:schedu/widgets/kalender.dart';
 
@@ -40,7 +41,7 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          !isCalendarView ? const Color(0xFF6D7470) : Colors.white,
+                          !isCalendarView ? const Color(0xFF2FD4DB) : Colors.white,
                       foregroundColor: !isCalendarView ? Colors.white : Colors.black,
                       side: const BorderSide(color: Color(0xFF6D7470)),
                     ),
@@ -57,7 +58,7 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          isCalendarView ? const Color(0xFF6D7470) : Colors.white,
+                          isCalendarView ? const Color(0xFF2FD4DB) : Colors.white,
                       foregroundColor: isCalendarView ? Colors.white : Colors.black,
                       side: const BorderSide(color: Color(0xFF6D7470)),
                     ),
@@ -146,11 +147,12 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Aksi saat tombol ditekan
-          print("Tambah ditekan!");
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_)=> TambahJadwal()));
         },
-        backgroundColor: const Color(0xFF6D7470), // warna abu-abu gelap
-        child: const Icon(Icons.add),
+        backgroundColor: const Color(0xFF2FD4DB),
+        child: const Icon(Icons.add)
       ),
     );
   }

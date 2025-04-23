@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:schedu/screens/homepage.dart';
-import 'tugas_page.dart';
-import 'package:schedu/main.dart';
 
-class TambahTugas extends StatefulWidget {
-  const TambahTugas({super.key});
+
+class TambahJadwal extends StatefulWidget {
+  const TambahJadwal({super.key});
 
   @override
-  State<TambahTugas> createState() => _TambahTugasState();
+  State<TambahJadwal> createState() => _TambahJadwalState();
 }
 
-class _TambahTugasState extends State<TambahTugas> {
+class _TambahJadwalState extends State<TambahJadwal> {
 final TextEditingController MatakuliahControler = TextEditingController();
-final TextEditingController DeadlineControler = TextEditingController();
+final TextEditingController HariControler = TextEditingController();
 final TextEditingController JamControler = TextEditingController();
-final TextEditingController TPControler = TextEditingController();
-
-String title = "Tambah Tugas";
-
+final TextEditingController RuangControler = TextEditingController();
+  
+  String title = "Tambah Jadwal";
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     appBar: AppBar(
+      appBar: AppBar(
       backgroundColor: const Color(0xFF2FD4DB),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
@@ -71,9 +68,9 @@ String title = "Tambah Tugas";
             child: Column(
               children: [
                 TextField(
-                  controller: DeadlineControler,
+                  controller: HariControler,
                   decoration: InputDecoration(
-                    labelText: 'Deadline',
+                    labelText: 'Hari',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20)
                     )
@@ -105,9 +102,9 @@ String title = "Tambah Tugas";
             child: Column(
               children: [
                 TextField(
-                  controller: TPControler,
+                  controller: RuangControler,
                   decoration: InputDecoration(
-                    labelText: 'Tempat Pengumpulan',
+                    labelText: 'Ruang',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20)
                     )

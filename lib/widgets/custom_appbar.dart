@@ -28,7 +28,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
   Widget build(BuildContext context) {
     return AppBar(
       title: Text('Hai, $username 👋'),
-      backgroundColor: const Color(0xFF6D7470),
+      backgroundColor: const Color(0xFF2FD4DB),
     );
   }
 }

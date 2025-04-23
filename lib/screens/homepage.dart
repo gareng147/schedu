@@ -61,7 +61,7 @@ class _HomePageState extends State<HomePage> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: selectedDay == "hari_ini"
-                        ? const Color(0xFF5E6862)
+                        ? const Color(0xFF2FD4DB)
                         : Colors.grey.shade300,
                     foregroundColor: selectedDay == "hari_ini"
                         ? Colors.white
@@ -79,13 +79,13 @@ class _HomePageState extends State<HomePage> {
                     });
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                        selectedDay == "besok" ? Colors.black : Colors.black54,
-                    side: BorderSide(
-                      color: selectedDay == "besok"
-                          ? Colors.black
-                          : Colors.grey,
-                    ),
+                    backgroundColor: selectedDay == "besok"
+                        ? const Color(0xFF2FD4DB)
+                        : Colors.grey.shade300,
+                    foregroundColor: selectedDay == "besok" 
+                        ? Colors.white 
+                        : Colors.black87,
+                    
                   ),
                   child: const Text("Besok"),
                 ),

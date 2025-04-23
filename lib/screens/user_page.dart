@@ -51,7 +51,7 @@ class UserPage extends StatelessWidget {
         icon: const Icon(Icons.logout),
         label: const Text("Logout"),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 0, 101, 101),
+          backgroundColor: const Color(0xFF2FD4DB),
           foregroundColor: Colors.white,
         ),
         onPressed: () => _showLogoutDialog(context),

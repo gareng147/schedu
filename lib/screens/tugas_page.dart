@@ -102,12 +102,12 @@ class _TugasUjianPageState extends State<TugasUjianPage>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const TambahTugas()),
           );
         },
-        backgroundColor: Colors.grey[700],
+        backgroundColor: const Color(0xFF2FD4DB),
         child: const Icon(Icons.add),
       ),
     );
