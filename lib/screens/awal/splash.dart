@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:schedu/screens/login.dart';
+import 'package:schedu/screens/awal/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 //import 'homepage.dart';
 import 'package:schedu/main.dart';

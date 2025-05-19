@@ -2,63 +2,80 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-
-class TambahTugas extends StatefulWidget {
-  const TambahTugas({super.key});
+class TambahUjian extends StatefulWidget {
+  const TambahUjian({super.key});
 
   @override
-  State<TambahTugas> createState() => _TambahTugasState();
+  State<TambahUjian> createState() => _TambahUjianState();
 }
 
-class _TambahTugasState extends State<TambahTugas> {
-  final TextEditingController tempatController = TextEditingController();
-
+class _TambahUjianState extends State<TambahUjian> {
   String? selectedMatkul;
-  DateTime? selectedDeadline;
+  DateTime? selectedDate;
   TimeOfDay? selectedTime;
-
+  final TextEditingController tempatController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  @override
-  void initState() {
-    super.initState();
-    initializeDateFormatting('id_ID', null);
-  }
-
-
+  
   Future<List<String>> getMataKuliah() async {
-    final snapshot = await FirebaseFirestore.instance.collection('jadwal').get();
-    final matkulList = snapshot.docs.map((doc) => doc['matkul'] as String).toSet().toList();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('jadwal')
+        .get();
+
+    final matkulList = snapshot.docs
+        .map((doc) => doc['matkul'] as String)
+        .toSet()
+        .toList();
+
     return matkulList;
   }
 
-  Future<void> _simpanTugas() async {
+
+    @override
+    void initState() {
+      super.initState();
+      initializeDateFormatting('id_ID', null);
+    }
+
+  Future<void> _simpanUjian() async {
     if (_formKey.currentState!.validate() &&
         selectedMatkul != null &&
-        selectedDeadline != null &&
+        selectedDate != null &&
         selectedTime != null) {
-      final tugasData = {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final data = {
         'matkul': selectedMatkul,
-        'deadline': Timestamp.fromDate(
-          DateTime(
-            selectedDeadline!.year,
-            selectedDeadline!.month,
-            selectedDeadline!.day,
-            selectedTime!.hour,
-            selectedTime!.minute,
-          ),
-        ),
+        'waktu': Timestamp.fromDate(DateTime(
+          selectedDate!.year,
+          selectedDate!.month,
+          selectedDate!.day,
+          selectedTime!.hour,
+          selectedTime!.minute,
+        )),
         'jam': "${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}",
         'tempat': tempatController.text,
         'createdAt': FieldValue.serverTimestamp(),
-        'selesai': false,
       };
 
-      await FirebaseFirestore.instance.collection('tugas').add(tugasData);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('ujian')
+          .add(data);
+
       Navigator.pop(context);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +86,21 @@ class _TambahTugasState extends State<TambahTugas> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Tambah Tugas', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
+        flexibleSpace: SafeArea(
+          child: Center(
+            child: Text(
+              "Tambah Ujian",
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 30,
+              ),
+            ),
+          ),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
       ),
       body: FutureBuilder<List<String>>(
         future: getMataKuliah(),
@@ -85,25 +115,21 @@ class _TambahTugasState extends State<TambahTugas> {
               child: ListView(
                 children: [
                   DropdownButtonFormField<String>(
-                    decoration: _inputDecoration('Mata Kuliah'),
-                    items: matkulList
-                        .map((matkul) => DropdownMenuItem(
-                              value: matkul,
-                              child: Text(matkul),
-                            ))
-                        .toList(),
+                    decoration: _inputDecoration("Mata Kuliah"),
+                    items: matkulList.map((matkul) {
+                      return DropdownMenuItem(value: matkul, child: Text(matkul));
+                    }).toList(),
                     onChanged: (value) => setState(() => selectedMatkul = value),
                     value: selectedMatkul,
-                    validator: (value) => value == null ? 'Pilih mata kuliah' : null,
+                    validator: (value) => value == null ? "Pilih mata kuliah" : null,
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
                     readOnly: true,
-                    decoration: _inputDecoration('Deadline'),
                     controller: TextEditingController(
-                      text: selectedDeadline == null
+                      text: selectedDate == null
                           ? ''
-                          : DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(selectedDeadline!),
+                          : DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(selectedDate!),
                     ),
                     onTap: () async {
                       final pickedDate = await showDatePicker(
@@ -113,19 +139,17 @@ class _TambahTugasState extends State<TambahTugas> {
                         lastDate: DateTime(2100),
                       );
                       if (pickedDate != null) {
-                        setState(() => selectedDeadline = pickedDate);
+                        setState(() => selectedDate = pickedDate);
                       }
                     },
-                    validator: (_) => selectedDeadline == null ? 'Pilih deadline' : null,
+                    decoration: _inputDecoration("Tanggal Ujian"),
+                    validator: (_) => selectedDate == null ? "Pilih tanggal ujian" : null,
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
                     readOnly: true,
-                    decoration: _inputDecoration('Jam'),
                     controller: TextEditingController(
-                      text: selectedTime == null
-                          ? ''
-                          : selectedTime!.format(context),
+                      text: selectedTime == null ? '' : selectedTime!.format(context),
                     ),
                     onTap: () async {
                       final pickedTime = await showTimePicker(
@@ -136,25 +160,21 @@ class _TambahTugasState extends State<TambahTugas> {
                         setState(() => selectedTime = pickedTime);
                       }
                     },
-                    validator: (_) => selectedTime == null ? 'Pilih jam' : null,
+                    decoration: _inputDecoration("Jam Ujian"),
+                    validator: (_) => selectedTime == null ? "Pilih jam ujian" : null,
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: tempatController,
-                    decoration: _inputDecoration('Tempat Pengumpulan'),
-                    validator: (value) => value == null || value.isEmpty ? 'Isi tempat' : null,
+                    decoration: _inputDecoration("Tempat Ujian"),
+                    validator: (value) => value == null || value.isEmpty ? "Isi tempat ujian" : null,
                   ),
-                  const SizedBox(height: 36),
-                  ElevatedButton(
-                    onPressed: _simpanTugas,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2FD4DB),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: _simpanUjian,
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2FD4DB)),
+                      child: const Text("Simpan", style: TextStyle(color: Colors.white)),
                     ),
-                    child: const Text('Simpan', style: TextStyle(fontSize: 18)),
                   ),
                 ],
               ),

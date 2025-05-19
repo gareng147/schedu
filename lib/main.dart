@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:schedu/screens/login.dart';
-import 'package:schedu/screens/splash.dart';
+import 'package:schedu/screens/awal/login.dart';
+import 'package:schedu/screens/awal/splash.dart';
 import 'package:schedu/widgets/custom_appbar.dart';
 import 'package:schedu/screens/homepage.dart';
 import 'package:schedu/screens/jadwal_page.dart';
@@ -94,14 +94,6 @@ class _HomePageState extends State<MainPage> {
     );
   }
 }
-
-
-
-
-
-
-
-
 
 
 

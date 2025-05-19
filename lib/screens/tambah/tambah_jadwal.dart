@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -23,6 +24,15 @@ class _TambahJadwalState extends State<TambahJadwal> {
   String formatJam(TimeOfDay time) {
     return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
+  String? selectedLantai;
+  String? selectedRuang;
+
+  final Map<String, List<String>> ruangPerLantai = {
+    '2': ['2.1', '2.2', '2.3', '2.4'],
+    '3': ['3.1', '3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9'],
+    '4': ['lab1', 'lab2', 'lab3', 'lab4', '4.1', '4.2', '4.3', '4.4'],
+  };
+
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +54,9 @@ class _TambahJadwalState extends State<TambahJadwal> {
               ),
             ),
           ),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
       ),
       body: SingleChildScrollView(
@@ -96,18 +109,47 @@ class _TambahJadwalState extends State<TambahJadwal> {
             ),
             const SizedBox(height: 10),
 
-            const Text("Ruang", style: TextStyle(fontSize: 15)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: ruangController,
-              decoration: _inputDecoration(),
-            ),
+            const Text("Tempat", style: TextStyle(fontSize: 15)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: selectedLantai,
+                decoration: _inputDecoration(),
+                hint: const Text("Pilih Lantai"),
+                items: ['2', '3', '4']
+                    .map((lantai) => DropdownMenuItem(value: lantai, child: Text("Lantai $lantai")))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedLantai = value;
+                    selectedRuang = null; 
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
+              if (selectedLantai != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Ruang", style: TextStyle(fontSize: 15)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedRuang,
+                      decoration: _inputDecoration(),
+                      hint: const Text("Pilih Ruang"),
+                      items: ruangPerLantai[selectedLantai]!
+                          .map((ruang) => DropdownMenuItem(value: ruang, child: Text(ruang)))
+                          .toList(),
+                      onChanged: (value) => setState(() => selectedRuang = value),
+                    ),
+                  ],
+                ),
+
             const SizedBox(height: 20),
 
             Center(
               child: ElevatedButton(
                 onPressed: _simpanJadwal,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A959A)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2FD4DB)),
                 child: const Text("Simpan", style: TextStyle(color: Colors.white)),
               ),
             ),
@@ -140,17 +182,22 @@ class _TambahJadwalState extends State<TambahJadwal> {
   }
 
   Future<void> _simpanJadwal() async {
+   
     final matkul = matakuliahController.text;
-    final ruang = ruangController.text;
+    final ruang = selectedRuang;
     final hari = selectedHari;
     final mulai = selectedJamMulai;
     final selesai = selectedJamSelesai;
 
-    if (matkul.isEmpty || ruang.isEmpty || hari == null || mulai == null || selesai == null) return;
+    if (matkul.isEmpty || ruang == null || hari == null || mulai == null || selesai == null) return;
+
 
     final jamGabungan = "${formatJam(mulai)} - ${formatJam(selesai)}";
+    final user = FirebaseAuth.instance.currentUser;
 
-    await FirebaseFirestore.instance.collection('jadwal').add({
+    Navigator.pop(context);
+
+    await FirebaseFirestore.instance.collection('users').doc(user!.uid).collection('jadwal').add({
       'matkul': matkul,
       'hari': hari,
       'jam': jamGabungan,
@@ -158,6 +205,6 @@ class _TambahJadwalState extends State<TambahJadwal> {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    Navigator.pop(context);
+    
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:schedu/screens/tambah_tugas.dart';
-import 'tambah_ujian.dart';
+import 'package:schedu/screens/tambah/tambah_tugas.dart';
+import 'tambah/tambah_ujian.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TugasUjianPage extends StatefulWidget {
   const TugasUjianPage({Key? key}) : super(key: key);
@@ -13,13 +15,26 @@ class TugasUjianPage extends StatefulWidget {
 class _TugasUjianPageState extends State<TugasUjianPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  DateTime _selectedDate = DateTime.now(); // Menyimpan tanggal yang dipilih
-  bool isTugasView = true; // Menentukan apakah tampilan adalah tugas atau ujian
+  DateTime _selectedDate = DateTime.now();
+  bool isTugasView = true;
+
+  bool isLoadingEvents = false;
+
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+
+  Map<DateTime, List<Map<String, dynamic>>> tugasEvents = {};
+  Map<DateTime, List<Map<String, dynamic>>> ujianEvents = {};
 
   @override
   void initState() {
     _tabController = TabController(length: 2, vsync: this);
     super.initState();
+
+    final start = _selectedDate.subtract(const Duration(days: 14));
+    final end = _selectedDate.add(const Duration(days: 14));
+    loadEventsInRange(start, end);
   }
 
   @override
@@ -28,25 +43,75 @@ class _TugasUjianPageState extends State<TugasUjianPage>
     super.dispose();
   }
 
-  // Fungsi untuk mengambil tugas berdasarkan tanggal
-  Future<List<Map<String, dynamic>>> getTugasByDate(DateTime date) async {
-    final snapshot = await FirebaseFirestore.instance
+  Future<void> loadEventsInRange(DateTime start, DateTime end) async {
+    setState(() => isLoadingEvents = true);
+
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final tugasSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
         .collection('tugas')
-        .where('deadline',
-            isGreaterThanOrEqualTo:
-                DateTime(date.year, date.month, date.day),
-            isLessThan:
-                DateTime(date.year, date.month, date.day + 1))
+        .where('deadline', isGreaterThanOrEqualTo: start)
+        .where('deadline', isLessThanOrEqualTo: end)
+        .get();
+
+    final ujianSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('ujian')
+        .where('waktu', isGreaterThanOrEqualTo: start)
+        .where('waktu', isLessThanOrEqualTo: end)
+        .get();
+
+    final Map<DateTime, List<Map<String, dynamic>>> tempTugasEvents = {};
+    final Map<DateTime, List<Map<String, dynamic>>> tempUjianEvents = {};
+
+    for (var doc in tugasSnapshot.docs) {
+      final data = doc.data();
+      final deadline = (data['deadline'] as Timestamp).toDate();
+      final date = DateTime(deadline.year, deadline.month, deadline.day);
+      tempTugasEvents.putIfAbsent(date, () => []).add(data);
+    }
+
+    for (var doc in ujianSnapshot.docs) {
+      final data = doc.data();
+      final waktu = (data['waktu'] as Timestamp).toDate();
+      final date = DateTime(waktu.year, waktu.month, waktu.day);
+      tempUjianEvents.putIfAbsent(date, () => []).add(data);
+    }
+
+    setState(() {
+      tugasEvents = tempTugasEvents;
+      ujianEvents = tempUjianEvents;
+      isLoadingEvents = false;
+    });
+  }
+
+
+  Future<List<Map<String, dynamic>>> getTugasByDate(DateTime date) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(Duration(days: 1));
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('tugas')
+        .where('deadline', isGreaterThanOrEqualTo: start)
+        .where('deadline', isLessThan: end)
         .get();
 
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
-  // Fungsi untuk mengambil ujian berdasarkan tanggal
+
   Future<List<Map<String, dynamic>>> getUjianByDate(DateTime date) async {
     final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
         .collection('ujian')
-        .where('deadline',
+        .where('waktu',
             isGreaterThanOrEqualTo:
                 DateTime(date.year, date.month, date.day),
             isLessThan:
@@ -56,24 +121,38 @@ class _TugasUjianPageState extends State<TugasUjianPage>
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
-  // Widget untuk menampilkan kalender
   Widget _buildCalendar() {
-    return Container(
+    final events = isTugasView ? tugasEvents : ujianEvents;
+
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: CalendarDatePicker(
-        initialDate: _selectedDate,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
-        onDateChanged: (date) {
+      child: TableCalendar(
+        focusedDay: _selectedDate,
+        firstDay: DateTime(2020),
+        lastDay: DateTime(2030),
+        selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
+        eventLoader: (day) => events[DateTime(day.year, day.month, day.day)] ?? [],
+        calendarFormat: _calendarFormat, 
+        onFormatChanged: (format) {      
           setState(() {
-            _selectedDate = date;
+            _calendarFormat = format;
           });
         },
+        onDaySelected: (selected, focused) {
+          setState(() {
+            _selectedDate = selected;
+          });
+        },
+        calendarStyle: const CalendarStyle(
+          todayDecoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+          selectedDecoration: BoxDecoration(color: Color(0xFF2FD4DB), shape: BoxShape.circle),
+          markerDecoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+        ),
       ),
     );
   }
 
-  // Widget untuk menampilkan tombol toggle antara Tugas dan Ujian
+
   Widget _buildStyledToggle() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -83,7 +162,10 @@ class _TugasUjianPageState extends State<TugasUjianPage>
             child: ElevatedButton(
               onPressed: () {
                 setState(() {
-                  isTugasView = true; // Menampilkan tugas
+                  isTugasView = true;
+                  final start = _selectedDate.subtract(const Duration(days: 14));
+                  final end = _selectedDate.add(const Duration(days: 14));
+                  loadEventsInRange(start, end);
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -105,7 +187,10 @@ class _TugasUjianPageState extends State<TugasUjianPage>
             child: ElevatedButton(
               onPressed: () {
                 setState(() {
-                  isTugasView = false; // Menampilkan ujian
+                  isTugasView = false;
+                  final start = _selectedDate.subtract(const Duration(days: 14));
+                  final end = _selectedDate.add(const Duration(days: 14));
+                  loadEventsInRange(start, end);
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -127,19 +212,18 @@ class _TugasUjianPageState extends State<TugasUjianPage>
     );
   }
 
-  // Widget untuk menampilkan daftar tugas atau ujian berdasarkan tanggal
   Widget _buildList(String type) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: type == 'tugas'
-          ? getTugasByDate(_selectedDate) // Menampilkan tugas berdasarkan tanggal
-          : getUjianByDate(_selectedDate), // Menampilkan ujian berdasarkan tanggal
+          ? getTugasByDate(_selectedDate)
+          : getUjianByDate(_selectedDate),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator()); // Menunggu data
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('Tidak ada data')); // Tidak ada data
+          return const Center(child: Text('Tidak ada data'));
         }
 
         final dataList = snapshot.data!;
@@ -173,7 +257,6 @@ class _TugasUjianPageState extends State<TugasUjianPage>
     );
   }
 
-  // Fungsi untuk mengubah angka weekday menjadi nama hari
   String _getDayName(int weekday) {
     const days = [
       "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"
@@ -181,11 +264,20 @@ class _TugasUjianPageState extends State<TugasUjianPage>
     return days[weekday - 1];
   }
 
-  // Fungsi untuk mengubah angka bulan menjadi nama bulan
   String _getMonthName(int month) {
     const monthNames = [
-      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember"
     ];
     return monthNames[month - 1];
   }
@@ -193,41 +285,45 @@ class _TugasUjianPageState extends State<TugasUjianPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-          _buildStyledToggle(), // Menampilkan toggle untuk Tugas dan Ujian
-          const SizedBox(height: 16),
-          _buildCalendar(), // Menampilkan kalender
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "${_getDayName(_selectedDate.weekday)}, ${_selectedDate.day} ${_getMonthName(_selectedDate.month)} ${_selectedDate.year}",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+      body: isLoadingEvents
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildStyledToggle(),
+                const SizedBox(height: 16),
+                _buildCalendar(),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "${_getDayName(_selectedDate.weekday)}, ${_selectedDate.day} ${_getMonthName(_selectedDate.month)} ${_selectedDate.year}",
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: isTugasView
+                      ? _buildList('tugas')
+                      : _buildList('ujian'),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: isTugasView ? _buildList('tugas') : _buildList('ujian'),
-            // Menampilkan daftar tugas atau ujian berdasarkan tab yang dipilih
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           if (isTugasView) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const TambahTugas()), // Arahkan ke halaman tambah tugas
+              MaterialPageRoute(builder: (_) => const TambahTugas()),
             );
           } else {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const TambahUjian()), // Arahkan ke halaman tambah ujian
+              MaterialPageRoute(builder: (_) => const TambahUjian()),
             );
           }
         },

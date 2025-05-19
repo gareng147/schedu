@@ -43,6 +43,8 @@ final TextEditingController nomorController = TextEditingController();
         'nama': nama,
         'no_hp': nohp,
         'email': email,
+        'nim':'',
+        'web':'',
         'created_at': FieldValue.serverTimestamp(),
       });
 

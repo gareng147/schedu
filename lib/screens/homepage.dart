@@ -1,6 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:schedu/widgets/schedule_card.dart';
+import 'package:schedu/widgets/schedule_card.dart'; 
+import 'edit/edit_jadwal.dart';
+import 'catatan/catatan.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -13,17 +16,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String selectedDay = "hari_ini";
 
-  String _formatDate(DateTime date) {
-    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-  }
-
-
  String _getHari(DateTime date) {
     const hariList = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     return hariList[date.weekday % 7]; 
   }
 
-
+  final user = FirebaseAuth.instance.currentUser;
 
   
   final List<Color> warnaCard = [
@@ -31,6 +29,40 @@ class _HomePageState extends State<HomePage> {
     const Color(0xFFEADBC8),
     const Color(0xFFF6EFE7),
   ];
+
+  final TextEditingController _catatanController = TextEditingController();
+  bool _isSavingCatatan = false;
+
+  Future<void> _simpanCatatan() async {
+    final isi = _catatanController.text.trim();
+    if (isi.isEmpty) return;
+
+    setState(() => _isSavingCatatan = true);
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .collection('catatan')
+          .add({
+        'isi': isi,
+        'waktu': Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Catatan berhasil disimpan")),
+      );
+
+      _catatanController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal menyimpan catatan")),
+      );
+    } finally {
+      setState(() => _isSavingCatatan = false);
+    }
+  }
+
 
     @override
     Widget build(BuildContext context) {
@@ -41,7 +73,7 @@ class _HomePageState extends State<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Judul
+        
         const Padding(
           padding: EdgeInsets.all(16.0),
           child: Text(
@@ -50,7 +82,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
 
-        // Tombol Hari Ini & Besok
+        
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
@@ -101,9 +133,10 @@ class _HomePageState extends State<HomePage> {
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(user!.uid)
                 .collection('jadwal')
                 .where('hari', isEqualTo: filterHari)
-                //.orderBy('jam')
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -131,12 +164,13 @@ class _HomePageState extends State<HomePage> {
                       ruang: ruang,
                       color: warna,
                       onEdit: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/edit-jadwal',
-                          arguments: docs[index].id,
-                        );
-                      },
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => editJadwal(docId: docs[index].id), // pakai id dari dokumen Firestore
+                              ),
+                            );
+                          },
                       onDelete: () async {
                         final confirm = await showDialog<bool>(
                           context: context,
@@ -152,6 +186,8 @@ class _HomePageState extends State<HomePage> {
                     
                         if (confirm == true) {
                           await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user!.uid)
                               .collection('jadwal')
                               .doc(docs[index].id)
                               .delete();
@@ -159,7 +195,6 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                   );
-
                 },
               );
             },
@@ -167,34 +202,71 @@ class _HomePageState extends State<HomePage> {
         ),
 
 
-        // Catatan
+        
         const Divider(color: Colors.black, thickness: 1, indent: 16, endIndent: 16),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text("Catatan", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Catatan", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.chevron_right, color: Colors.black),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => catatan(docId: user!.uid),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ),
         Container(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           color: Colors.white,
-          child: TextField(
-            maxLines: 5,
-            decoration: InputDecoration(
-              hintText: "Tulis catatan...",
-              filled: true,
-              fillColor: const Color.fromARGB(255, 217, 217, 217),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _catatanController,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    hintText: "Tulis catatan...",
+                    filled: true,
+                    fillColor: const Color.fromARGB(255, 217, 217, 217),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
               ),
-              suffixIcon: const Icon(Icons.delete, color: Colors.black54),
-            ),
+              const SizedBox(width: 8),
+              Column(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _catatanController.clear();
+                    },
+                  ),
+                  IconButton(
+                    icon: _isSavingCatatan
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.save, color: Colors.green),
+                    onPressed: _isSavingCatatan ? null : _simpanCatatan,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-      ],
+      ]
     );
-  }
+    }
 
   
   

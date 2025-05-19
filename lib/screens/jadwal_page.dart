@@ -1,7 +1,11 @@
+
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:schedu/screens/tambah_jadwal.dart';
+import 'package:schedu/screens/tambah/tambah_jadwal.dart';
 import 'package:schedu/widgets/schedule_card.dart';
 import 'package:schedu/widgets/kalender.dart';
+import 'edit/edit_jadwal.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 
@@ -17,12 +21,13 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
   bool isCalendarView = false;
 
   
-  final List<Map<String, String>> jadwal = [
-    {"title": "Digital Marketing", "subtitle": "Ruang 2.2 | 08:20 - 10:30"},
-    {"title": "DMDW", "subtitle": "Ruang 3.2 | 08:20 - 10:30"},
-  ];
+ 
+  String? docId ;
+  final user = FirebaseAuth.instance.currentUser;
 
+  
   @override
+
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
@@ -96,6 +101,8 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user!.uid)
                   .collection('jadwal')
                   .where('hari', isEqualTo: _namaHari(_selectedDate.weekday))
                   .snapshots(),
@@ -109,7 +116,7 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
 
                   final docs = snapshot.data!.docs;
                   return ListView.builder(
-                    // Hanya tambahkan padding horizontal di tab kalender
+                    
                     padding: isCalendarView ? const EdgeInsets.symmetric(horizontal: 16) : EdgeInsets.zero,
                     itemCount: docs.length,
                     itemBuilder: (context, index) {
@@ -123,14 +130,16 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                           title: data['matkul'] ?? '',
                           jam: data['jam'] ?? '',
                           ruang: data['ruang'] ?? '',
-                          color: Colors.pink[100], // contoh warna
+                          color: Colors.pink[100],
                           onEdit: () {
-                            Navigator.pushNamed(
+                            Navigator.push(
                               context,
-                              '/edit-jadwal',
-                              arguments: docs[index].id,
+                              MaterialPageRoute(
+                                builder: (context) => editJadwal(docId: docs[index].id), 
+                              ),
                             );
                           },
+
                           onDelete: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
@@ -145,7 +154,7 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                             );
 
                             if (confirm == true) {
-                              await FirebaseFirestore.instance.collection('jadwal').doc(docs[index].id).delete();
+                              await FirebaseFirestore.instance.collection('users').doc(user!.uid).collection('jadwal').doc(docs[index].id).delete();
                             }
                           },
                         ),
@@ -161,9 +170,12 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
             
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
+                stream: FirebaseFirestore.instance                    
+                    .collection('users')
+                    .doc(user!.uid)
                     .collection('jadwal')
-                    .orderBy('createdAt', descending: false)
+                    .orderBy('hari')
+                    .orderBy('jam')
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -173,79 +185,80 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                     return Center(child: Text('Belum ada jadwal'));
                   }
 
-                  
-                  final Map<String, List<Map<String, dynamic>>> groupedData = {};
+                  final docs = snapshot.data!.docs;
+                  final List<Widget> listItems = [];
+                  String? currentHari;
 
-                  for (var doc in snapshot.data!.docs) {
+                  for (var doc in docs) {
                     final data = doc.data() as Map<String, dynamic>;
-                    final hari = data['hari'] ?? 'Lainnya';
-                    groupedData.putIfAbsent(hari, () => []).add(data);
+                    final title = data['matkul'] ?? '';
+                    final ruang = data['ruang'] ?? '';
+                    final jam = data['jam'] ?? '';
+                    final hari = data['hari'] ?? '';
+
+                    if (currentHari != hari) {
+                      currentHari = hari;
+                      listItems.add(Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          currentHari!,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ));
+                    }
+
+                    listItems.add(
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: ScheduleCard(
+                          title: title,
+                          jam: jam,
+                          ruang: ruang,
+                          color: Colors.pink[100],
+                          onEdit: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => editJadwal(docId: doc.id),
+                              ),
+                            );
+                          },
+                          onDelete: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Hapus Jadwal'),
+                                content: const Text('Yakin ingin menghapus jadwal ini?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(user!.uid)
+                                  .collection('jadwal')
+                                  .doc(doc.id)
+                                  .delete();
+                            }
+                          },
+                        ),
+                      ),
+                    );
                   }
 
-                  final hariList = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-
-                  return ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: hariList.where((h) => groupedData.containsKey(h)).map((hari) {
-                      final items = groupedData[hari]!;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            hari,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                          const SizedBox(height: 8),
-                          ...items.map((item) {
-                            return ScheduleCard(
-                              title: item['matkul'] ?? '',
-                              jam: item['jam'] ?? '',
-                              ruang: item['ruang'] ?? '',
-                              color: Colors.pink[100],
-                              onEdit: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/edit-jadwal',
-                                  arguments: item['id'], // ini mungkin perlu disesuaikan
-                                );
-                              },
-                              onDelete: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Hapus Jadwal'),
-                                    content: const Text('Yakin ingin menghapus jadwal ini?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
-                                    ],
-                                  ),
-                                );
-
-                                if (confirm == true) {
-                                  // di sini kita butuh id dokumen Firestore
-                                  await FirebaseFirestore.instance
-                                    .collection('jadwal')
-                                    .where('matkul', isEqualTo: item['matkul']) // ganti ini kalau ada ID
-                                    .get()
-                                    .then((snapshot) {
-                                      for (var doc in snapshot.docs) {
-                                        doc.reference.delete();
-                                      }
-                                    });
-                                }
-                              },
-                            );
-                          }).toList(),
-
-                          const SizedBox(height: 16),
-                        ],
-                      );
-                    }).toList(),
+                  return Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: ListView(
+                      children: listItems,
+                    ),
                   );
                 },
               ),
             )
+
           ],
         ],
       ),
@@ -278,5 +291,6 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
       "Juli", "Agustus", "September", "Oktober", "November", "Desember"
     ];
     return bulan[month - 1];
+    
   }
 }

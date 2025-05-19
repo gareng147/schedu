@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:schedu/screens/register.dart';
+import 'package:schedu/screens/awal/register.dart';
 import 'package:schedu/main.dart';
 //import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
