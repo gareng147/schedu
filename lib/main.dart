@@ -9,16 +9,10 @@ import 'package:schedu/screens/user_page.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-
-
-
-void main() async{
-
-WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-);
-FlutterError.onError = (FlutterErrorDetails details) {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     print('🔥 Caught Flutter error: ${details.exception}');
     print('🔥 Stack trace:\n${details.stack}');
@@ -53,14 +47,14 @@ class _HomePageState extends State<MainPage> {
     "Home",
     "Jadwal Kuliah",
     "Tugas Kuliah",
-    "Profil User"
+    "Profil User",
   ];
 
   final List<Widget> pages = [
     const HomePage(),
     const JadwalKelasPage(),
     const TugasUjianPage(),
-    const UserPage()
+    const UserPage(),
   ];
 
   void onItemTapped(int index) {
@@ -73,10 +67,7 @@ class _HomePageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
-        children: [
-          const CustomAppBar(),
-          Expanded(child: pages[selectedIndex]),
-        ],
+        children: [const CustomAppBar(), Expanded(child: pages[selectedIndex])],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
@@ -94,7 +85,3 @@ class _HomePageState extends State<MainPage> {
     );
   }
 }
-
-
-
-

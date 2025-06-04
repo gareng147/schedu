@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:schedu/screens/awal/login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'edit/edit_profile.dart';
+
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
 
@@ -17,7 +19,6 @@ class _UserPageState extends State<UserPage> {
   String email = '';
   String webStudent = '';
 
-
   @override
   void initState() {
     super.initState();
@@ -28,13 +29,15 @@ class _UserPageState extends State<UserPage> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      DocumentSnapshot userSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
 
       if (userSnapshot.exists) {
         final data = userSnapshot.data() as Map<String, dynamic>;
+        if (!mounted) return;
         setState(() {
           username = data['nama'] ?? '';
           nim = data['nim'] ?? '-';
@@ -46,9 +49,9 @@ class _UserPageState extends State<UserPage> {
     }
   }
 
-
   Future<void> _logoutAndExit(BuildContext context) async {
     try {
+      await GoogleSignIn().signOut();
       await FirebaseAuth.instance.signOut();
       if (context.mounted) {
         Navigator.pushReplacement(
@@ -64,30 +67,34 @@ class _UserPageState extends State<UserPage> {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Konfirmasi Logout"),
-        content: const Text("Apakah kamu yakin ingin keluar dari akun ini?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Batal"),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Konfirmasi Logout"),
+            content: const Text(
+              "Apakah kamu yakin ingin keluar dari akun ini?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text("Batal"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _logoutAndExit(context);
+                },
+                child: const Text("Ya"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _logoutAndExit(context);
-            },
-            child: const Text("Ya"),
-          ),
-        ],
-      ),
     );
   }
 
   void _goToEditProfile() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const EditProfile()));
+      MaterialPageRoute(builder: (_) => const EditProfile()),
+    );
   }
 
   @override
@@ -115,7 +122,10 @@ class _UserPageState extends State<UserPage> {
               const SizedBox(height: 8),
               Text(
                 username.isNotEmpty ? username : "Loading...",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               _buildInfoCard(Icons.badge, "NIM: $nim"),
@@ -130,7 +140,10 @@ class _UserPageState extends State<UserPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2FD4DB),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -141,15 +154,15 @@ class _UserPageState extends State<UserPage> {
           ),
         ),
 
-        
         Positioned(
           bottom: 20,
           right: 20,
           child: FloatingActionButton(
-            onPressed: (){
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EditProfile()));
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EditProfile()),
+              );
             },
             backgroundColor: const Color(0xFF2FD4DB),
             child: const Icon(Icons.edit, color: Colors.white),

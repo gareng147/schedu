@@ -1,4 +1,3 @@
-// screens/register_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login.dart';
@@ -12,11 +11,10 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-
-final TextEditingController namaController = TextEditingController();
-final TextEditingController emailController = TextEditingController();
-final TextEditingController passwordController = TextEditingController();
-final TextEditingController nomorController = TextEditingController();
+  final TextEditingController namaController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController nomorController = TextEditingController();
 
   void _signup() async {
     final email = emailController.text.trim();
@@ -24,35 +22,35 @@ final TextEditingController nomorController = TextEditingController();
     final nama = namaController.text.trim();
     final nohp = nomorController.text.trim();
 
-    
     if (email.isEmpty || password.isEmpty || nama.isEmpty || nohp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Semua kolom harus diisi!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Semua kolom harus diisi!')));
       return;
     }
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
 
-      
-      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-        'nama': nama,
-        'no_hp': nohp,
-        'email': email,
-        'nim':'',
-        'web':'',
-        'created_at': FieldValue.serverTimestamp(),
-      });
+      await userCredential.user!.sendEmailVerification();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+            'nama': nama,
+            'no_hp': nohp,
+            'email': email,
+            'nim': '',
+            'web': '',
+            'created_at': FieldValue.serverTimestamp(),
+          });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Registrasi Berhasil. Silahkan Login.')),
       );
 
-      // Navigasi ke LoginPage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -66,17 +64,16 @@ final TextEditingController nomorController = TextEditingController();
         errorMsg = 'Password Terlalu Lemah';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMsg)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMsg)));
     }
   }
 
-  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     backgroundColor: Colors.white,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Container(
@@ -84,13 +81,14 @@ final TextEditingController nomorController = TextEditingController();
             child: Column(
               children: [
                 Row(
-                  children: [                
+                  children: [
                     ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcATop),
+                      colorFilter: ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcATop,
+                      ),
                       child: Image.asset("assets/daun.png", width: 150),
-                      
                     ),
-                    
                   ],
                 ),
                 Container(
@@ -121,8 +119,8 @@ final TextEditingController nomorController = TextEditingController();
                         style: TextStyle(fontSize: 15, color: Colors.black),
                       ),
                       const SizedBox(height: 5),
-                      TextField(  
-                        controller: namaController,              
+                      TextField(
+                        controller: namaController,
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
@@ -147,14 +145,14 @@ final TextEditingController nomorController = TextEditingController();
                         ),
                       ),
                       const SizedBox(height: 15),
-                      
+
                       const Text(
                         "Email",
                         style: TextStyle(fontSize: 15, color: Colors.black),
                       ),
                       const SizedBox(height: 5),
-                      TextField(   
-                        controller: emailController,             
+                      TextField(
+                        controller: emailController,
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
@@ -168,8 +166,8 @@ final TextEditingController nomorController = TextEditingController();
                         style: TextStyle(fontSize: 15, color: Colors.black),
                       ),
                       const SizedBox(height: 5),
-                      TextField(  
-                        controller: nomorController,              
+                      TextField(
+                        controller: nomorController,
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(10),
                           border: OutlineInputBorder(
@@ -177,7 +175,7 @@ final TextEditingController nomorController = TextEditingController();
                           ),
                         ),
                       ),
-                      const SizedBox(height: 15,),
+                      const SizedBox(height: 15),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -186,30 +184,43 @@ final TextEditingController nomorController = TextEditingController();
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF0A959A),
                               shape: const StadiumBorder(),
-                              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
                               textStyle: const TextStyle(fontSize: 18),
                             ),
-                            child: const Text("Sign Up",style: TextStyle(color: Colors.white),),
+                            child: const Text(
+                              "Sign Up",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                           ElevatedButton(
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const LoginPage()));
-                              
+                                MaterialPageRoute(
+                                  builder: (_) => const LoginPage(),
+                                ),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF0A959A),
                               shape: const StadiumBorder(),
-                              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
                               textStyle: const TextStyle(fontSize: 18),
                             ),
-                            child: const Text("Cancel",style: TextStyle(color: Colors.white),),
+                            child: const Text(
+                              "Cancel",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 15,),
-                      
+                      SizedBox(height: 15),
                     ],
                   ),
                 ),
@@ -218,7 +229,6 @@ final TextEditingController nomorController = TextEditingController();
           ),
         ),
       ),
-
     );
   }
 }

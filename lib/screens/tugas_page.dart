@@ -44,25 +44,28 @@ class _TugasUjianPageState extends State<TugasUjianPage>
   }
 
   Future<void> loadEventsInRange(DateTime start, DateTime end) async {
+    if (!mounted) return;
     setState(() => isLoadingEvents = true);
 
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    final tugasSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('tugas')
-        .where('deadline', isGreaterThanOrEqualTo: start)
-        .where('deadline', isLessThanOrEqualTo: end)
-        .get();
+    final tugasSnapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('tugas')
+            .where('deadline', isGreaterThanOrEqualTo: start)
+            .where('deadline', isLessThanOrEqualTo: end)
+            .get();
 
-    final ujianSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('ujian')
-        .where('waktu', isGreaterThanOrEqualTo: start)
-        .where('waktu', isLessThanOrEqualTo: end)
-        .get();
+    final ujianSnapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('ujian')
+            .where('waktu', isGreaterThanOrEqualTo: start)
+            .where('waktu', isLessThanOrEqualTo: end)
+            .get();
 
     final Map<DateTime, List<Map<String, dynamic>>> tempTugasEvents = {};
     final Map<DateTime, List<Map<String, dynamic>>> tempUjianEvents = {};
@@ -80,7 +83,7 @@ class _TugasUjianPageState extends State<TugasUjianPage>
       final date = DateTime(waktu.year, waktu.month, waktu.day);
       tempUjianEvents.putIfAbsent(date, () => []).add(data);
     }
-
+    if (!mounted) return;
     setState(() {
       tugasEvents = tempTugasEvents;
       ujianEvents = tempUjianEvents;
@@ -88,35 +91,35 @@ class _TugasUjianPageState extends State<TugasUjianPage>
     });
   }
 
-
   Future<List<Map<String, dynamic>>> getTugasByDate(DateTime date) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(Duration(days: 1));
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('tugas')
-        .where('deadline', isGreaterThanOrEqualTo: start)
-        .where('deadline', isLessThan: end)
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('tugas')
+            .where('deadline', isGreaterThanOrEqualTo: start)
+            .where('deadline', isLessThan: end)
+            .get();
 
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
-
   Future<List<Map<String, dynamic>>> getUjianByDate(DateTime date) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('ujian')
-        .where('waktu',
-            isGreaterThanOrEqualTo:
-                DateTime(date.year, date.month, date.day),
-            isLessThan:
-                DateTime(date.year, date.month, date.day + 1))
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('ujian')
+            .where(
+              'waktu',
+              isGreaterThanOrEqualTo: DateTime(date.year, date.month, date.day),
+              isLessThan: DateTime(date.year, date.month, date.day + 1),
+            )
+            .get();
 
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
@@ -131,27 +134,38 @@ class _TugasUjianPageState extends State<TugasUjianPage>
         firstDay: DateTime(2020),
         lastDay: DateTime(2030),
         selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
-        eventLoader: (day) => events[DateTime(day.year, day.month, day.day)] ?? [],
-        calendarFormat: _calendarFormat, 
-        onFormatChanged: (format) {      
+        eventLoader:
+            (day) => events[DateTime(day.year, day.month, day.day)] ?? [],
+        calendarFormat: _calendarFormat,
+        onFormatChanged: (format) {
+          if (!mounted) return;
           setState(() {
             _calendarFormat = format;
           });
         },
         onDaySelected: (selected, focused) {
+          if (!mounted) return;
           setState(() {
             _selectedDate = selected;
           });
         },
         calendarStyle: const CalendarStyle(
-          todayDecoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
-          selectedDecoration: BoxDecoration(color: Color(0xFF2FD4DB), shape: BoxShape.circle),
-          markerDecoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+          todayDecoration: BoxDecoration(
+            color: Colors.orange,
+            shape: BoxShape.circle,
+          ),
+          selectedDecoration: BoxDecoration(
+            color: Color(0xFF2FD4DB),
+            shape: BoxShape.circle,
+          ),
+          markerDecoration: BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );
   }
-
 
   Widget _buildStyledToggle() {
     return Padding(
@@ -161,9 +175,12 @@ class _TugasUjianPageState extends State<TugasUjianPage>
           Expanded(
             child: ElevatedButton(
               onPressed: () {
+                if (!mounted) return;
                 setState(() {
                   isTugasView = true;
-                  final start = _selectedDate.subtract(const Duration(days: 14));
+                  final start = _selectedDate.subtract(
+                    const Duration(days: 14),
+                  );
                   final end = _selectedDate.add(const Duration(days: 14));
                   loadEventsInRange(start, end);
                 });
@@ -186,9 +203,12 @@ class _TugasUjianPageState extends State<TugasUjianPage>
           Expanded(
             child: ElevatedButton(
               onPressed: () {
+                if (!mounted) return;
                 setState(() {
                   isTugasView = false;
-                  final start = _selectedDate.subtract(const Duration(days: 14));
+                  final start = _selectedDate.subtract(
+                    const Duration(days: 14),
+                  );
                   final end = _selectedDate.add(const Duration(days: 14));
                   loadEventsInRange(start, end);
                 });
@@ -214,9 +234,10 @@ class _TugasUjianPageState extends State<TugasUjianPage>
 
   Widget _buildList(String type) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: type == 'tugas'
-          ? getTugasByDate(_selectedDate)
-          : getUjianByDate(_selectedDate),
+      future:
+          type == 'tugas'
+              ? getTugasByDate(_selectedDate)
+              : getUjianByDate(_selectedDate),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -259,7 +280,13 @@ class _TugasUjianPageState extends State<TugasUjianPage>
 
   String _getDayName(int weekday) {
     const days = [
-      "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"
+      "Senin",
+      "Selasa",
+      "Rabu",
+      "Kamis",
+      "Jumat",
+      "Sabtu",
+      "Minggu",
     ];
     return days[weekday - 1];
   }
@@ -277,7 +304,7 @@ class _TugasUjianPageState extends State<TugasUjianPage>
       "September",
       "Oktober",
       "November",
-      "Desember"
+      "Desember",
     ];
     return monthNames[month - 1];
   }
@@ -285,34 +312,36 @@ class _TugasUjianPageState extends State<TugasUjianPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: isLoadingEvents
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                const SizedBox(height: 16),
-                _buildStyledToggle(),
-                const SizedBox(height: 16),
-                _buildCalendar(),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "${_getDayName(_selectedDate.weekday)}, ${_selectedDate.day} ${_getMonthName(_selectedDate.month)} ${_selectedDate.year}",
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
+      body:
+          isLoadingEvents
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _buildStyledToggle(),
+                  const SizedBox(height: 16),
+                  _buildCalendar(),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "${_getDayName(_selectedDate.weekday)}, ${_selectedDate.day} ${_getMonthName(_selectedDate.month)} ${_selectedDate.year}",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: isTugasView
-                      ? _buildList('tugas')
-                      : _buildList('ujian'),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child:
+                        isTugasView ? _buildList('tugas') : _buildList('ujian'),
+                  ),
+                ],
+              ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           if (isTugasView) {

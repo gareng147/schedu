@@ -1,5 +1,3 @@
-
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:schedu/screens/tambah/tambah_jadwal.dart';
@@ -7,7 +5,6 @@ import 'package:schedu/widgets/schedule_card.dart';
 import 'package:schedu/widgets/kalender.dart';
 import 'edit/edit_jadwal.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 
 class JadwalKelasPage extends StatefulWidget {
   const JadwalKelasPage({super.key});
@@ -20,19 +17,15 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
   DateTime _selectedDate = DateTime.now();
   bool isCalendarView = false;
 
-  
- 
-  String? docId ;
+  String? docId;
   final user = FirebaseAuth.instance.currentUser;
 
-  
   @override
-
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-          const SizedBox(height: 16),          
+          const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -40,14 +33,18 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
+                      if (!mounted) return;
                       setState(() {
                         isCalendarView = false;
                       });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          !isCalendarView ? const Color(0xFF2FD4DB) : Colors.white,
-                      foregroundColor: !isCalendarView ? Colors.white : Colors.black,
+                          !isCalendarView
+                              ? const Color(0xFF2FD4DB)
+                              : Colors.white,
+                      foregroundColor:
+                          !isCalendarView ? Colors.white : Colors.black,
                       side: const BorderSide(color: Color(0xFF6D7470)),
                     ),
                     child: const Text("Jadwal"),
@@ -57,14 +54,18 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
+                      if (!mounted) return;
                       setState(() {
                         isCalendarView = true;
                       });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          isCalendarView ? const Color(0xFF2FD4DB) : Colors.white,
-                      foregroundColor: isCalendarView ? Colors.white : Colors.black,
+                          isCalendarView
+                              ? const Color(0xFF2FD4DB)
+                              : Colors.white,
+                      foregroundColor:
+                          isCalendarView ? Colors.white : Colors.black,
                       side: const BorderSide(color: Color(0xFF6D7470)),
                     ),
                     child: const Text("Kalender"),
@@ -76,12 +77,11 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
 
           const SizedBox(height: 16),
 
-          
           if (isCalendarView) ...[
-           
             KalenderWidget(
               selectedDate: _selectedDate,
               onDateChanged: (newDate) {
+                if (!mounted) return;
                 setState(() {
                   _selectedDate = newDate;
                 });
@@ -94,18 +94,25 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "${_formatTanggal(_selectedDate)}",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user!.uid)
-                  .collection('jadwal')
-                  .where('hari', isEqualTo: _namaHari(_selectedDate.weekday))
-                  .snapshots(),
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user!.uid)
+                        .collection('jadwal')
+                        .where(
+                          'hari',
+                          isEqualTo: _namaHari(_selectedDate.weekday),
+                        )
+                        .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
@@ -116,8 +123,10 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
 
                   final docs = snapshot.data!.docs;
                   return ListView.builder(
-                    
-                    padding: isCalendarView ? const EdgeInsets.symmetric(horizontal: 16) : EdgeInsets.zero,
+                    padding:
+                        isCalendarView
+                            ? const EdgeInsets.symmetric(horizontal: 16)
+                            : EdgeInsets.zero,
                     itemCount: docs.length,
                     itemBuilder: (context, index) {
                       final data = docs[index].data() as Map<String, dynamic>;
@@ -125,7 +134,11 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                       final ruang = data['ruang'] ?? '';
                       final jam = data['jam'] ?? '';
                       return Padding(
-                        padding: isCalendarView ? const EdgeInsets.only(bottom: 16) : EdgeInsets.zero, // Hanya beri margin bawah di kalender
+                        padding:
+                            isCalendarView
+                                ? const EdgeInsets.only(bottom: 16)
+                                : EdgeInsets
+                                    .zero, // Hanya beri margin bawah di kalender
                         child: ScheduleCard(
                           title: data['matkul'] ?? '',
                           jam: data['jam'] ?? '',
@@ -135,7 +148,9 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => editJadwal(docId: docs[index].id), 
+                                builder:
+                                    (context) =>
+                                        editJadwal(docId: docs[index].id),
                               ),
                             );
                           },
@@ -143,18 +158,34 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                           onDelete: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Hapus Jadwal'),
-                                content: const Text('Yakin ingin menghapus jadwal ini?'),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
-                                ],
-                              ),
+                              builder:
+                                  (ctx) => AlertDialog(
+                                    title: const Text('Hapus Jadwal'),
+                                    content: const Text(
+                                      'Yakin ingin menghapus jadwal ini?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, false),
+                                        child: const Text('Batal'),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, true),
+                                        child: const Text('Hapus'),
+                                      ),
+                                    ],
+                                  ),
                             );
 
                             if (confirm == true) {
-                              await FirebaseFirestore.instance.collection('users').doc(user!.uid).collection('jadwal').doc(docs[index].id).delete();
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(user!.uid)
+                                  .collection('jadwal')
+                                  .doc(docs[index].id)
+                                  .delete();
                             }
                           },
                         ),
@@ -163,20 +194,18 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                   );
                 },
               ),
-            )
-
-
+            ),
           ] else ...[
-            
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance                    
-                    .collection('users')
-                    .doc(user!.uid)
-                    .collection('jadwal')
-                    .orderBy('hari')
-                    .orderBy('jam')
-                    .snapshots(),
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user!.uid)
+                        .collection('jadwal')
+                        .orderBy('hari')
+                        .orderBy('jam')
+                        .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
@@ -198,13 +227,18 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
 
                     if (currentHari != hari) {
                       currentHari = hari;
-                      listItems.add(Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          currentHari!,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      listItems.add(
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            currentHari!,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ));
+                      );
                     }
 
                     listItems.add(
@@ -226,14 +260,25 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
                           onDelete: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Hapus Jadwal'),
-                                content: const Text('Yakin ingin menghapus jadwal ini?'),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
-                                ],
-                              ),
+                              builder:
+                                  (ctx) => AlertDialog(
+                                    title: const Text('Hapus Jadwal'),
+                                    content: const Text(
+                                      'Yakin ingin menghapus jadwal ini?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, false),
+                                        child: const Text('Batal'),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, true),
+                                        child: const Text('Hapus'),
+                                      ),
+                                    ],
+                                  ),
                             );
                             if (confirm == true) {
                               await FirebaseFirestore.instance
@@ -251,14 +296,11 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
 
                   return Padding(
                     padding: const EdgeInsets.all(15.0),
-                    child: ListView(
-                      children: listItems,
-                    ),
+                    child: ListView(children: listItems),
                   );
                 },
               ),
-            )
-
+            ),
           ],
         ],
       ),
@@ -266,10 +308,11 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_)=> TambahJadwal()));
+            MaterialPageRoute(builder: (_) => TambahJadwal()),
+          );
         },
         backgroundColor: const Color(0xFF2FD4DB),
-        child: const Icon(Icons.add)
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -281,16 +324,33 @@ class _JadwalKelasPageState extends State<JadwalKelasPage> {
   }
 
   String _namaHari(int weekday) {
-    const hari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+    const hari = [
+      "Senin",
+      "Selasa",
+      "Rabu",
+      "Kamis",
+      "Jumat",
+      "Sabtu",
+      "Minggu",
+    ];
     return hari[weekday - 1];
   }
 
   String _namaBulan(int month) {
     const bulan = [
-      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
     ];
     return bulan[month - 1];
-    
   }
 }

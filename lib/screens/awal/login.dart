@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:schedu/screens/awal/register.dart';
 import 'package:schedu/main.dart';
-//import 'package:shared_preferences/shared_preferences.dart';
+import 'lupapassword.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,8 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-   bool _isLoading = false;
-
+  bool _isLoading = false;
 
   void _login() async {
     setState(() => _isLoading = true);
@@ -35,19 +33,29 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      final user = userCredential.user;
+      await user?.reload();
 
       if (!mounted) return;
 
-      // Debug log
-      print("Login berhasil: ${userCredential.user?.email}");
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        await FirebaseAuth.instance.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Silakan verifikasi email Anda terlebih dahulu."),
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainPage()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainPage()));
     } on FirebaseAuthException catch (e) {
       String message = 'Terjadi kesalahan';
       if (e.code == 'user-not-found') {
@@ -56,26 +64,22 @@ class _LoginPageState extends State<LoginPage> {
         message = 'Password salah';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } catch (e,stacktrace) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e, stacktrace) {
       print("Unhandled error: $e");
       print("Stacktrace: $stacktrace");
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -87,20 +91,22 @@ class _LoginPageState extends State<LoginPage> {
             color: Color(0xFF2FD4DB),
             child: Column(
               children: [
-                Padding(                  
+                Padding(
                   padding: const EdgeInsets.only(bottom: 30),
                   child: Row(
-                    children: [                
+                    children: [
                       SizedBox(
                         width: 150,
                         child: Column(
                           children: [
                             ColorFiltered(
-                              colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcATop),
+                              colorFilter: ColorFilter.mode(
+                                Colors.white,
+                                BlendMode.srcATop,
+                              ),
                               child: Image.asset("assets/daun.png", width: 150),
-                              
                             ),
-                            
+
                             Padding(
                               padding: const EdgeInsets.only(left: 17.0),
                               child: Column(
@@ -112,8 +118,8 @@ class _LoginPageState extends State<LoginPage> {
                                       style: TextStyle(
                                         fontSize: 50,
                                         color: Colors.white,
-                                        fontWeight: FontWeight.bold
-                                        ),                                
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                   Align(
@@ -123,24 +129,26 @@ class _LoginPageState extends State<LoginPage> {
                                       style: TextStyle(
                                         fontSize: 15,
                                         color: Colors.white,
-                                        fontWeight: FontWeight.bold
-                                        ),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            )
-                          ],                        
+                            ),
+                          ],
                         ),
                       ),
                       Spacer(),
                       ColorFiltered(
-                        colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcATop),
+                        colorFilter: ColorFilter.mode(
+                          Colors.white,
+                          BlendMode.srcATop,
+                        ),
                         child: Image.asset("assets/task.png", width: 150),
                       ),
                     ],
                   ),
-                  
                 ),
                 Container(
                   width: double.infinity,
@@ -197,62 +205,76 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 15),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const LupapasswordPage(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "Forgot Password?",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _isLoading
-                          ?CircularProgressIndicator()
-
-                          :ElevatedButton(
-                            onPressed: _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF0A959A),
-                              shape: const StadiumBorder(),
-                              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                              textStyle: const TextStyle(fontSize: 18),
-                            ),
-                            child: const Text("Login",style: TextStyle(color: Colors.white),),
-                          ),
+                              ? CircularProgressIndicator()
+                              : ElevatedButton(
+                                onPressed: _login,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFF0A959A),
+                                  shape: const StadiumBorder(),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 32,
+                                    vertical: 14,
+                                  ),
+                                  textStyle: const TextStyle(fontSize: 18),
+                                ),
+                                child: const Text(
+                                  "Login",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
                           ElevatedButton(
                             onPressed: () {
-                              SystemNavigator.pop();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterPage(),
+                                ),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF0A959A),
                               shape: const StadiumBorder(),
-                              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
                               textStyle: const TextStyle(fontSize: 18),
                             ),
-                            child: const Text("Cancel",style: TextStyle(color: Colors.white),),
+                            child: const Text(
+                              "Sign Up",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 15,),
-                      Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [                          
-                            Text("Don't have a account?"),  
-                            GestureDetector(
-                              onTap: (){
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const RegisterPage() ),
-                                );
-                                
-                              },
-                              child: Text(
-                                "Sign up",
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            )                        
-                          ],                        
-                        ),
-                      ),
+                      const SizedBox(height: 15),
                     ],
                   ),
                 ),
@@ -261,7 +283,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-
     );
   }
 }
