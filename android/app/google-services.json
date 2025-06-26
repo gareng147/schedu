@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "612075904628",
+    "firebase_url": "https://schedu-1ae36-default-rtdb.firebaseio.com",
+    "project_id": "schedu-1ae36",
+    "storage_bucket": "schedu-1ae36.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612075904628:android:2836e5cdcf428f12ff3b21",
+        "android_client_info": {
+          "package_name": "com.example.schedu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "612075904628-1q0b52dfk7uftq4j2023qgbhdrqgtk6c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.schedu",
+            "certificate_hash": "b953ceb4d056ed480400cf15ff6c43c8c41e0778"
+          }
+        },
+        {
+          "client_id": "612075904628-6bc4jf35pqos7vn2vhjqb1bhikuu7lvq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDK7HXwBGOqz3aQstJq6bCd6vA0g4QmbqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "612075904628-6bc4jf35pqos7vn2vhjqb1bhikuu7lvq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
